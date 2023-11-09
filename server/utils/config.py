@@ -7,6 +7,9 @@ class Settings(BaseSettings):
     DB_HOST: str
     DB_PORT: int
     DB_DATABASE: str
+    
+    ACCESS_EXPIRY: int
+    REFRESH_EXPIRY: int
 
     class Config:
         env_file = '.env'
