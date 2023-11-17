@@ -74,15 +74,16 @@ async def update_article(
     if not article.user_id == user.id:
         raise HTTPException(403, detail='Operation not allowed')
     
-    schema.title = schema.title.lower().replace(' ', '-')
+    if schema.title:
+        schema.title = schema.title.lower().replace(' ', '-')
 
-    if db.query(Article).filter(Article.title == schema.title).filter(Article.title != article.title).first():
-        raise HTTPException(400, detail='Article already exists')
-   
-    article.title = schema.title
-    article.description = schema.description
-    article.img_url = schema.img_url
-    article.content = schema.content
+        if db.query(Article).filter(Article.title == schema.title).filter(Article.title != article.title).first():
+            raise HTTPException(400, detail='Article already exists')
+    
+    form = schema.model_dump(exclude_unset=True)
+
+    for key, value in form.items():
+        setattr(article, key, value)
 
     db.commit()
     db.refresh(article)

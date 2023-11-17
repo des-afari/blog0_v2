@@ -15,11 +15,11 @@ class ArticleSchema(BaseModel):
 
 
 class ArticleUpdateSchema(BaseModel):
-    img_url: str
-    title: str
-    description: str
-    content: str
-
+    img_url: str = None
+    title: str = None
+    description: str = None
+    content: str = None
+    
 
 class ArticleResponse(BaseModel):
     id: str
@@ -28,7 +28,7 @@ class ArticleResponse(BaseModel):
     description: str
     content: str
     created_at: datetime
-    updated_at: datetime = None
+    updated_at: datetime | None
     categories: List[CategoryResponse]
     comments: List[CommentResponse]
     votes: List[VoteResponse]

@@ -35,9 +35,8 @@ async def delete_comment(
 	if not comment:
 		raise HTTPException(404, detail='Comment not found')
 
-	if user.id == comment.user_id or user.role == 'admin':
-		db.delete(comment)
-		db.commit()
-
-	else:
+	if not (user.id == comment.user_id or user.role == 'admin'):
 		raise HTTPException(403, detail='Operation not allowed')
+	
+	db.delete(comment)
+	db.commit()

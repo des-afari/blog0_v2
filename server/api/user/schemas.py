@@ -10,10 +10,31 @@ class JWTResponse(BaseModel):
         from_attributes = True
 
 
+class UserResponse(BaseModel):
+    id: str
+    first_name: str
+    last_name: str
+    email: EmailStr
+    role: str
+
+    class Config:
+        from_attributes = True
+
+
+class RefreshResponse(BaseModel):
+    id: str
+    access_token: str
+    role: str
+
+    class Config:
+        from_attributes = True
+
+
 class AuthResponse(BaseModel):
     id: str
-    jti: str
+    access_token: str
     role: str
+    user: UserResponse
 
     class Config:
         from_attributes = True
@@ -30,21 +51,10 @@ class LogoutSchema(BaseModel):
     access_token: str|None
 
 
-class UserResponse(BaseModel):
-    id: str
-    first_name: str
-    last_name: str
-    email: EmailStr
-    role: str
-
-    class Config:
-        from_attributes = True
-
-
 class UserUpdateSchema(BaseModel):
-    email: EmailStr
-    first_name: str
-    last_name: str
+    email: EmailStr = None
+    first_name: str = None
+    last_name: str = None
 
 
 

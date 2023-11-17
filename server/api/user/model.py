@@ -23,6 +23,7 @@ class User(Base):
     def set_slug(self):
         self.first_name = self.first_name.lower().replace(' ', '-')
         self.last_name = self.last_name.lower().replace(' ', '-')
+        self.email = self.email.lower()
 
     def __repr__(self) -> str:
         return f"<User email={self.email} />"

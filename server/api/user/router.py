@@ -2,7 +2,7 @@ from fastapi import APIRouter, Request, Response, Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
 from api.user.config import hash_password, verify_password
 from api.user.schemas import (AuthResponse, UserSchema, LogoutSchema, UserResponse, UserUpdateSchema,
-                              PasswordUpdateResponse, PasswordUpdateSchema)
+                              PasswordUpdateResponse, PasswordUpdateSchema, RefreshResponse)
 from api.user.oauth2 import (create_token, verify_token, ACCESS_PUBLIC_KEY, REFRESH_PRIVATE_KEY,
                             ACCESS_PRIVATE_KEY, REFRESH_PUBLIC_KEY, get_user)
 from api.user.model import User
@@ -18,8 +18,6 @@ router = APIRouter()
 
 @router.post('/register', status_code=201, response_model=AuthResponse)
 async def register(response: Response, schema: UserSchema, db: Session = Depends(get_db)):
-    schema.email = schema.email.lower()
-
     if db.query(User).filter(User.email == schema.email).first():
         raise HTTPException(409, detail='User already exists')
     
@@ -31,9 +29,7 @@ async def register(response: Response, schema: UserSchema, db: Session = Depends
     user.set_slug()
 
     db.add(user)
-    # db.commit()
-
-    print(ACCESS_PRIVATE_KEY)
+    db.commit()
 
     access_token = create_token(data={"id": user.id, "role": user.role}, expiry=settings.ACCESS_EXPIRY, private_key=ACCESS_PRIVATE_KEY)
     refresh_token = create_token(data={"id": user.id, "role": user.role}, expiry=settings.REFRESH_EXPIRY, private_key=REFRESH_PRIVATE_KEY)
@@ -41,7 +37,7 @@ async def register(response: Response, schema: UserSchema, db: Session = Depends
     # CHANGE IN PRODUCTION
     response.set_cookie(
         key='jwt', value=refresh_token, path='/', secure=True, httponly=True,
-        expires=settings.REFRESH_TOKEN_EXPIRES * 60, domain=None, samesite='none'
+        expires=settings.REFRESH_EXPIRY * 60, domain=None, samesite='none'
     )
 
     return {"id": user.id, "access_token": access_token, "role": user.role, "user": user}
@@ -69,13 +65,13 @@ async def login(
     # CHANGE IN PRODUCTION
     response.set_cookie(
         key='jwt', value=refresh_token, path='/', secure=True, httponly=True,
-        expires=settings.REFRESH_TOKEN_EXPIRES * 60, domain=None, samesite='none'
+        expires=settings.REFRESH_EXPIRY * 60, domain=None, samesite='none'
     )
 
     return {"id": user.id, "access_token": access_token, "role": user.role, "user": user}
 
 
-@router.get('/refresh', status_code=200, response_model=AuthResponse)
+@router.get('/refresh', status_code=200, response_model=RefreshResponse)
 async def refresh(request: Request, db: Session = Depends(get_db)):
     token = request.cookies.get('jwt')
 
@@ -133,7 +129,7 @@ async def update_user(schema: UserUpdateSchema, db: Session = Depends(get_db), c
 
     if db.query(User).filter(User.email == schema.email).filter(User.email != user.email).first():
         raise HTTPException(400, detail='Email already registered')
-
+    
     form = schema.model_dump(exclude_unset=True)
 
     for key, value in form.items():
