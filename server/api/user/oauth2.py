@@ -43,19 +43,19 @@ REFRESH_PRIVATE_KEY = get_private_key('keys/refresh/privatekey.pem')
 REFRESH_PUBLIC_KEY = get_public_key('keys/refresh/publickey.pem')
 
 
-def create_token(data: dict, expiry: int, key: str):
+def create_token(data: dict, expiry: int, private_key):
     to_encode = data.copy()
     to_encode.update({
         'jti': token_hex(),
         'exp': datetime.utcnow() + timedelta(minutes=expiry)
     })
 
-    return jwt.encode(to_encode, key, algorithm='RS256')
+    return jwt.encode(to_encode, key=private_key, algorithm='RS256')
 
 
-def verify_token(token: str, key: str, credential_exception):
+def verify_token(token: str, public_key, credential_exception):
     try:
-        payload = jwt.decode(token, key, algorithms=['RS256'])
+        payload = jwt.decode(token, public_key, algorithms=['RS256'])
         id: str = payload.get('id')
         jti: str = payload.get('jti')
         role: str = payload.get('role')

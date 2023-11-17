@@ -11,6 +11,7 @@ from utils.config import settings
 from sqlalchemy.orm import Session
 from uuid import uuid4
 from api.jti.model import JsonTokenId
+from datetime import datetime
 
 
 router = APIRouter()
@@ -26,15 +27,16 @@ async def register(response: Response, schema: UserSchema, db: Session = Depends
 
     user = User(**schema.model_dump())
     user.id = str(uuid4())
+    user.last_login = datetime.now()
     user.set_slug()
 
     db.add(user)
-    db.commit()
+    # db.commit()
 
-    access_token = create_token(data={"id": user.id, "role": user.role}, 
-                                expiry=settings.ACCESS_EXPIRY, key=ACCESS_PRIVATE_KEY)
-    refresh_token = create_token(data={"id": user.id, "role": user.role},
-                                expiry=settings.REFRESH_EXPIRY, key=REFRESH_PRIVATE_KEY)
+    print(ACCESS_PRIVATE_KEY)
+
+    access_token = create_token(data={"id": user.id, "role": user.role}, expiry=settings.ACCESS_EXPIRY, private_key=ACCESS_PRIVATE_KEY)
+    refresh_token = create_token(data={"id": user.id, "role": user.role}, expiry=settings.REFRESH_EXPIRY, private_key=REFRESH_PRIVATE_KEY)
     
     # CHANGE IN PRODUCTION
     response.set_cookie(
@@ -57,10 +59,12 @@ async def login(
     if not verify_password(form.password, user.password):
         raise HTTPException(400, detail='Invalid credentials')
     
-    access_token = create_token(data={"id": user.id, "role": user.role}, 
-                                expiry=settings.ACCESS_EXPIRY, key=ACCESS_PRIVATE_KEY)
-    refresh_token = create_token(data={"id": user.id, "role": user.role},
-                                expiry=settings.REFRESH_EXPIRY, key=REFRESH_PRIVATE_KEY)
+    user.last_login = datetime.now()
+    db.commit()
+    db.refresh(user)
+    
+    access_token = create_token(data={"id": user.id, "role": user.role}, expiry=settings.ACCESS_EXPIRY, private_key=ACCESS_PRIVATE_KEY)
+    refresh_token = create_token(data={"id": user.id, "role": user.role}, expiry=settings.REFRESH_EXPIRY, private_key=REFRESH_PRIVATE_KEY)
     
     # CHANGE IN PRODUCTION
     response.set_cookie(
@@ -88,7 +92,7 @@ async def refresh(request: Request, db: Session = Depends(get_db)):
         raise credential_exception
     
     access_token = create_token(data={"id": payload.id, "role": payload.role},
-                                expiry=settings.ACCESS_EXPIRY, key=ACCESS_PRIVATE_KEY)
+                                expiry=settings.ACCESS_EXPIRY, private_key=ACCESS_PRIVATE_KEY)
 
     return {"id": payload.id, "access_token": access_token, "role": payload.role}
 

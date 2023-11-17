@@ -1,4 +1,5 @@
 from sqlalchemy import Column, String, Enum, TIMESTAMP, func
+from sqlalchemy.orm import relationship
 from db.base import Base
 
 class User(Base):
@@ -13,6 +14,11 @@ class User(Base):
     last_login = Column(TIMESTAMP)
     created_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
     updated_at = Column(TIMESTAMP, onupdate=func.now())
+
+    articles = relationship("Article", backref='user', cascade="all, delete-orphan")
+    comments = relationship('Comment',backref='user', cascade='all, delete-orphan')
+    vote = relationship("Vote", backref='user')
+
 
     def set_slug(self):
         self.first_name = self.first_name.lower().replace(' ', '-')
