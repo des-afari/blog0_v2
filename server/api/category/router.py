@@ -16,12 +16,11 @@ async def create_category(schema: CategorySchema, db: Session = Depends(get_db),
     if not user.role == 'admin':
         raise HTTPException(403, detail='Operation not allowed')
     
-    schema.name = schema.name.lower().replace(' ', '-')
-
     if db.query(Category).filter(Category.name == schema.name).first():
         raise HTTPException(409, detail='Category already exists')
     
-    category = Category(name=schema.name)
+    category = Category(**schema.model_dump())
+    category.set_slug()
 
     db.add(category)
     db.commit()
